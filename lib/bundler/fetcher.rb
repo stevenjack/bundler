@@ -7,7 +7,6 @@ module Bundler
   # Handles all the fetching with the rubygems server
   class Fetcher
     autoload :CompactIndex, 'bundler/fetcher/compact_index'
-    autoload :CompactDependency, 'bundler/fetcher/compact_dependency'
     autoload :Downloader, 'bundler/fetcher/downloader'
     autoload :Dependency, 'bundler/fetcher/dependency'
     autoload :Index, 'bundler/fetcher/index'
@@ -75,30 +74,12 @@ module Bundler
       @remote.anonymized_uri
     end
 
-    # fetch a gem specification
-    def fetch_spec(spec)
-      spec = spec - [nil, 'ruby', '']
-      spec_file_name = "#{spec.join '-'}.gemspec"
-
-      uri = URI.parse("#{remote_uri}#{Gem::MARSHAL_SPEC_DIR}#{spec_file_name}.rz")
-      if uri.scheme == 'file'
-        Bundler.load_marshal Gem.inflate(Gem.read_binary(uri.path))
-      elsif cached_spec_path = gemspec_cached_path(spec_file_name)
-        Bundler.load_gemspec(cached_spec_path)
-      else
-        Bundler.load_marshal Gem.inflate(downloader.fetch uri)
-      end
-    rescue MarshalError
-      raise HTTPError, "Gemspec #{spec} contained invalid data.\n" \
-        "Your network or your gem server is probably having issues right now."
-    end
-
     # return the specs in the bundler format as an index
     def specs(gem_names, source)
       old = Bundler.rubygems.sources
       index = Bundler::Index.new
 
-      specs = {}
+      specs = []
       fetchers.dup.each do |f|
         unless f.api_fetcher? && !gem_names
           break if specs = f.specs(gem_names)
@@ -107,14 +88,8 @@ module Bundler
       end
       @use_api = false if fetchers.none?(&:api_fetcher?)
 
-      specs[remote_uri].each do |name, version, platform, dependencies, metadata|
-        next if name == 'bundler'
-        spec = nil
-        if dependencies
-          spec = EndpointSpecification.new(name, version, platform, dependencies, metadata)
-        else
-          spec = RemoteSpecification.new(name, version, platform, self)
-        end
+      specs.each do |spec|
+        next if spec.name == 'bundler'
         spec.source = source
         spec.remote = @remote
         index << spec
@@ -178,7 +153,7 @@ module Bundler
 
   private
 
-    FETCHERS = [CompactDependency, Dependency, CompactIndex, Index]
+    FETCHERS = [CompactIndex, Dependency, Index]
 
     def connection
       @connection ||= begin
@@ -243,7 +218,7 @@ module Bundler
       @fetch_uri ||= begin
         if remote_uri.host == "rubygems.org"
           uri = remote_uri.dup
-          uri.host = "bundler.rubygems.org"
+          uri.host = "bundler-api-staging.herokuapp.com"
           uri
         else
           remote_uri
