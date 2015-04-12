@@ -106,10 +106,11 @@ module Bundler
     def use_api
       return @use_api if defined?(@use_api)
 
+      fetchers.select!(&:available?)
+
       if remote_uri.scheme == "file" || Bundler::Fetcher.disable_endpoint
         @use_api = false
       else
-        fetchers.select!(&:available?)
         @use_api = fetchers.first.api_fetcher?
       end
     end
@@ -180,13 +181,6 @@ module Bundler
         con.override_headers["User-Agent"] = user_agent
         con
       end
-    end
-
-    # cached gem specification path, if one exists
-    def gemspec_cached_path spec_file_name
-      paths = Bundler.rubygems.spec_cache_dirs.map { |dir| File.join(dir, spec_file_name) }
-      paths = paths.select {|path| File.file? path }
-      paths.first
     end
 
     HTTP_ERRORS = [
