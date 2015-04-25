@@ -43,10 +43,6 @@ module Bundler
 
       alias == eql?
 
-      def can_lock?(spec)
-        spec.source.is_a?(Rubygems)
-      end
-
       def options
         { "remotes" => @remotes.map { |r| r.to_s } }
       end

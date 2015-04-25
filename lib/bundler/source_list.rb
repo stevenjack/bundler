@@ -44,8 +44,7 @@ module Bundler
     end
 
     def lock_sources
-      lock_sources = (path_sources + git_sources).sort_by(&:to_s)
-      lock_sources << combine_rubygems_sources
+      all_sources.sort_by(&:to_s)
     end
 
     def replace_sources!(replacement_sources)
@@ -92,10 +91,6 @@ module Bundler
       when Source::Rubygems then rubygems_sources
       else raise ArgumentError, "Invalid source: #{source.inspect}"
       end
-    end
-
-    def combine_rubygems_sources
-      Source::Rubygems.new("remotes" => rubygems_remotes)
     end
   end
 end
