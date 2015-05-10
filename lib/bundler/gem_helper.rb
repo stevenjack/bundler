@@ -50,7 +50,8 @@ module Bundler
       end
 
       desc "Create tag #{version_tag} and build and push #{name}-#{version}.gem to Rubygems\n" \
-           "To prevent publishing in Rubygems use `gem_push=no rake release`"
+           "To prevent publishing in Rubygems use `gem_push=no rake release`" \
+           "To override the default tag message use `tag_message=\"foo bar\" rake release`"
       task 'release' => ['build', 'release:guard_clean',
                          'release:source_control_push', 'release:rubygem_push'] do
       end
@@ -134,7 +135,7 @@ module Bundler
     end
 
     def tag_version
-      sh "git tag -a -m \"Version #{version}\" #{version_tag}"
+      sh "git tag -a -m \"#{tag_version_message}\" #{version_tag}"
       Bundler.ui.confirm "Tagged #{version_tag}."
       yield if block_given?
     rescue
@@ -171,6 +172,14 @@ module Bundler
         end
       }
       [outbuf, $?]
+    end
+
+    def tag_message?
+      ENV.has_key? 'tag_message'
+    end
+
+    def tag_version_message
+      tag_message? ? ENV['tag_message'].to_s : "Version #{version}"
     end
 
     def gem_push?

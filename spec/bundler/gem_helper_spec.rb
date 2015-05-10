@@ -239,6 +239,15 @@ describe Bundler::GemHelper do
           Rake.application["release"].invoke
         end
 
+        it "uses override message if set" do
+          ENV['tag_message'] = "foo bar"
+          Rake.application["release"].invoke
+
+          Dir.chdir(app_path) do
+            expect(`git tag -ln #{app_version}`).to include("foo bar")
+          end
+        end
+
         it "even if tag already exists" do
           mock_build_message app_name, app_version
           mock_confirm_message "Tag v#{app_version} has already been created."
